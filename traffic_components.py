@@ -63,7 +63,7 @@ class StreetNetwork:
         return cls(flattened_nodes, streets, [])
 
     def cut_street(self, street):
-        '''Removes a given street from the network.'''
+        '''Cleanly removes a given street from the network.'''
 
         self.streets.remove(street)
         street.tail.outstreets.remove(street)
@@ -131,8 +131,8 @@ class Intersection:
 class Street:
     '''Streets are the weighted directed edges in the digraph. Despite
     their name, streets are never longer than one city block, i.e., a
-    street contains only two intersections, which are its
-    endpoints. Also, streets are never bi-directional; this is
+    street is a segment that contains only two intersections, which
+    are its endpoints. Also, streets are never bi-directional; this is
     achieved instead by two antiparallel streets. Streets contain
     information about its lanes as well as the queue of cars waiting
     at traffic lights.'''

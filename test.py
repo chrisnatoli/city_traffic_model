@@ -162,6 +162,7 @@ def test_dim_5x7_grid():
 def test_shortest_path():
     # The graph is as follows, with nodes in parentheses and weights
     # in arrows:
+    #
     # (A) ----9----> (B) ----24----> (C)--------------
     # |  \                          ^ | ^             \
     # |   14               --------/  2  \            |
@@ -173,6 +174,7 @@ def test_shortest_path():
     # |   /    ------------20-----/      ---16---\ \  |
     # v  v    /                                   v v v
     # (G)----/---------------------44------------> (H)
+    #
     # Shortest path from A to H is ADCEH.
 
     A = Intersection()
@@ -203,9 +205,27 @@ def test_shortest_path():
     edges = [AB, BC, DE, EF, GH, AG, AD,
              DG, DC, CE, FC, CH, GE, EH, FH]
 
+    # Confirm the shortest path and that the reverse path is impossible.
     network = StreetNetwork.no_cars(nodes, edges)
-
     assert_equal([AD, DC, CE, EH],
                  network.shortest_path(A, H))
-
     assert_raises(DisconnectedPathError, network.shortest_path, H, A)
+
+    # Replace CH with a shorter one so that it is now in the shortest path.
+    network.cut_street(CH)
+    CH = Street(C, H, 17)
+    network.streets.append(CH)
+    assert_equal([AD, DC, CH],
+                 network.shortest_path(A, H))
+
+    # Replace CH with another one of different length, so that the
+    # path ADCH has the same length as ADCEH. Note that it
+    # consistently picks the former, which is determined by the order
+    # in which Dijsktra's algorithm looks at neighbors, which is in
+    # turn determined by the order in which streets were connected to
+    # intersections.
+    network.cut_street(CH)
+    CH = Street(C, H, 18)
+    network.streets.append(CH)
+    assert_equal([AD, DC, CH],
+                 network.shortest_path(A, H))
