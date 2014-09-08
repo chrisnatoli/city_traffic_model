@@ -15,12 +15,12 @@ class StreetNetwork:
     traffic lights. Street networks also know the cars that move
     within them.'''
     
-    def __init__(self, nodes, edges, cars):
+    def __init__(self, intersections, streets, cars):
         '''Construct a street network as a simple digraph given the
         nodes and edges.'''
 
-        self.nodes = nodes
-        self.edges = edges
+        self.intersections = intersections
+        self.streets = streets
         self.cars = cars
 
     @classmethod
@@ -31,11 +31,11 @@ class StreetNetwork:
         return cls([], [], [])
 
     @classmethod
-    def no_cars(cls, nodes, edges):
+    def no_cars(cls, intersections, streets):
         '''Construct a street network with no cars, but nodes and
         edges are given.'''
         
-        return cls(nodes, edges, [])
+        return cls(intersections, streets, [])
 
     @classmethod
     def square_lattice(cls, width, height):
@@ -62,13 +62,60 @@ class StreetNetwork:
         
         return cls(flattened_nodes, streets, [])
 
-    def cut_edge(self, edge):
+    def cut_street(self, street):
         '''Removes a given street from the network.'''
-        self.edges.remove(edge)
-        edge.tail.outstreets.remove(edge)
-        edge.head.instreets.remove(edge)
 
+        self.streets.remove(street)
+        street.tail.outstreets.remove(street)
+        street.head.instreets.remove(street)
 
+    def shortest_path(self, source, destination):
+        '''Uses Dijkstra's algorithm to compute the shortest path in
+        the network from the source to the destination. Returns a
+        path, which is just a list of streets.'''
+        
+        # Initalize.
+        nodes = []
+        distance = dict()
+        previous_step = dict()
+        distance[source] = 0
+        for node in self.intersections:
+            if node != source:
+                distance[node] = float('inf')
+            previous_step[node] = None
+            nodes.append(node)
+        
+        # Label the nodes with the least total distance from the
+        # source as well as the previous step, i.e., the edge before
+        # it that gives that least distance.
+        while True:
+            node = min([ node for node in nodes ], key=distance.get)
+            if node == destination:
+                break
+            nodes.remove(node)
+            
+            for outstreet in node.outstreets:
+                neighbor = outstreet.head
+                alternative = distance[node] + outstreet.weight
+                if alternative < distance[neighbor]:
+                    distance[neighbor] = alternative
+                    previous_step[neighbor] = outstreet
+
+        # Backtrack from destination to source to build shortest path.
+        path = []
+        node = destination
+        while previous_step[node] is not None:
+            outstreet = previous_step[node]
+            path.insert(0, outstreet)
+            node = outstreet.tail
+        
+        if path == []:
+            raise DisconnectedPathError(
+                'There is no path whatsoever from {} to {}.'
+                .format(source, destination))
+
+        return path
+        
 
 class Intersection:
     '''Intersections are the nodes in the graph. They know the streets
@@ -82,16 +129,19 @@ class Intersection:
 
 
 class Street:
-    '''Streets are the directed edges in the digraph. Despite their
-    name, streets are never longer than one city block, i.e., a street
-    contains only two intersections, which are its endpoints. Also,
-    streets are never bi-directional; this is achieved instead by two
-    antiparallel streets. Streets contain information about its lanes
-    as well as the queues of cars waiting at traffic lights.'''
+    '''Streets are the weighted directed edges in the digraph. Despite
+    their name, streets are never longer than one city block, i.e., a
+    street contains only two intersections, which are its
+    endpoints. Also, streets are never bi-directional; this is
+    achieved instead by two antiparallel streets. Streets contain
+    information about its lanes as well as the queue of cars waiting
+    at traffic lights.'''
     
-    def __init__(self, tail,  head): # Will eventually contain lane information.
+    def __init__(self, tail, head, weight=1):
+        # Will eventually contain lane information.
         self.tail = tail
         self.head = head
+        self.weight = weight
         self.q = queue.Queue()
         
         tail.outstreets.append(self)
@@ -131,9 +181,14 @@ class Car:
         next_street = self.path[index]
         
         if next_street not in self.location.head.outstreets:
-            raise DisconnectedPathError()
+            raise DisconnectedPathError(
+                ('The car {} attempted to move from {} to {}, but'
+                 +'these streets were not joined by an intersection.')
+                .format(self, self.location, next_street))
         if self != self.location.q.queue[0]:
-            raise NotAtFrontOfQueueError()
+            raise NotAtFrontOfQueueError(
+                'The car {} could not leave the queue because it was'
+                +'not at the front of the queue.')
 
         self.location.q.get()
         next_street.q.put(self)
