@@ -83,26 +83,35 @@ class StreetNetwork:
                               if len(row) != w ][0],
                             w))
 
+        # Construct a 2d array of nodes.
         nodes = [ [ Intersection() for i in range(width) ] 
                   for j in range(height) ]
-        flattened_nodes = []
-        for row in nodes:
-            flattened_nodes.extend(row)
 
+        # Construct 2d arrays of streets in each of the four cardinal
+        # directions, using the given weights. The street labels are
+        # 'Direction: (a,b)->(c,d)' where (a,b) are the coordinates of
+        # the tail and (c,d) are the coordinates of the head.
         south_streets = [ Street(nodes[i][j], nodes[i+1][j],
-                                 weights['south'][i][j])
+                                 weights['south'][i][j],
+                                 'South: ({},{})->({},{})'.format(i,j,i+1,j))
                           for i in range(height-1) for j in range(width) ]
         north_streets = [ Street(nodes[i+1][j], nodes[i][j],
-                                 weights['south'][i][j])
+                                 weights['south'][i][j],
+                                 'North: ({},{})->({},{})'.format(i+1,j,i,j))
                           for i in range(height-1) for j in range(width) ]
         east_streets = [ Street(nodes[i][j], nodes[i][j+1],
-                                weights['east'][i][j])
+                                weights['east'][i][j],
+                                 'East: ({},{})->({},{})'.format(i,j,i,j+1))
                          for i in range(height) for j in range(width-1) ]
         west_streets = [ Street(nodes[i][j+1], nodes[i][j],
-                                weights['east'][i][j])
+                                weights['west'][i][j],
+                                 'West: ({},{})->({},{})'.format(i,j+1,i,j))
                          for i in range(height) for j in range(width-1) ]
         streets = north_streets + east_streets + south_streets + west_streets
         
+        flattened_nodes = []
+        for row in nodes:
+            flattened_nodes.extend(row)
         return cls(flattened_nodes, streets, [])
 
     def cut_street(self, street):
@@ -185,11 +194,12 @@ class Street:
     information about its lanes as well as the queue of cars waiting
     at traffic lights.'''
     
-    def __init__(self, tail, head, weight=1):
+    def __init__(self, tail, head, weight=1, label=''):
         # Will eventually contain lane information.
         self.tail = tail
         self.head = head
         self.weight = weight
+        self.label = label
         self.q = queue.Queue()
         
         tail.outstreets.append(self)

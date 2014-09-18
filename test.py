@@ -260,5 +260,15 @@ def test_grid_with_weights():
     for street in network.streets:
         assert_equal(street.weight, 1)
 
+    west_weights = 2 * np.ones((height, width-1))
+    network = StreetNetwork.square_lattice(width, height,
+                                           north_weights, east_weights,
+                                           south_weights, west_weights)
+    for street in network.streets:
+        if 'West' in street.label:
+            assert_equal(street.weight, 2)
+        else:
+            assert_equal(street.weight, 1)
+
     
     
