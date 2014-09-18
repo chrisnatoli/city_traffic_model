@@ -183,15 +183,16 @@ def test_shortest_path():
     #
     # Shortest path from A to H is ADCEH.
 
-    A = Intersection()
-    B = Intersection()
-    C = Intersection()
-    D = Intersection()
-    E = Intersection()
-    F = Intersection()
-    G = Intersection()
-    H = Intersection()
+    A = Intersection('A')
+    B = Intersection('B')
+    C = Intersection('C')
+    D = Intersection('D')
+    E = Intersection('E')
+    F = Intersection('F')
+    G = Intersection('G')
+    H = Intersection('H')
     nodes = [A, B, C, D, E, F, G, H]
+    assert_equal(A.label, 'A')
 
     AB = Street(A, B, 9)
     BC = Street(B, C, 24)
@@ -239,8 +240,8 @@ def test_shortest_path():
 
 
 def test_grid_with_weights():
-    width = 6
-    height = 5
+    height = 6
+    width = 5
 
     north_weights = np.ones((height-1, width))
     east_weights = np.ones((height, width-1))
@@ -254,14 +255,14 @@ def test_grid_with_weights():
                   south_weights, west_weights)
                                                
     west_weights = np.ones((height, width-1))
-    network = StreetNetwork.square_lattice(width, height,
+    network = StreetNetwork.square_lattice(height, width,
                                            north_weights, east_weights,
                                            south_weights, west_weights)
     for street in network.streets:
         assert_equal(street.weight, 1)
 
     west_weights = 2 * np.ones((height, width-1))
-    network = StreetNetwork.square_lattice(width, height,
+    network = StreetNetwork.square_lattice(height, width,
                                            north_weights, east_weights,
                                            south_weights, west_weights)
     for street in network.streets:
@@ -270,5 +271,7 @@ def test_grid_with_weights():
         else:
             assert_equal(street.weight, 1)
 
-    
-    
+    node_labels = [ node.label for node in network.intersections ]
+    for i in range(height):
+        for j in range(width):
+            assert (i,j) in node_labels

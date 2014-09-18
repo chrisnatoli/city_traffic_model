@@ -41,7 +41,7 @@ class StreetNetwork:
         return cls(intersections, streets, [])
 
     @classmethod
-    def square_lattice(cls, width, height,
+    def square_lattice(cls, height, width,
                        north_weights=None, east_weights=None,
                        south_weights=None, west_weights=None):
         '''Construct a street network on top of a square lattice
@@ -84,8 +84,8 @@ class StreetNetwork:
                             w))
 
         # Construct a 2d array of nodes.
-        nodes = [ [ Intersection() for i in range(width) ] 
-                  for j in range(height) ]
+        nodes = [ [ Intersection((i,j)) for j in range(width) ] 
+                  for i in range(height) ]
 
         # Construct 2d arrays of streets in each of the four cardinal
         # directions, using the given weights. The street labels are
@@ -179,9 +179,19 @@ class Intersection:
     that lead into the intersection (instreets) and streets that lead
     out of the intersection (outstreets).'''
 
-    def __init__(self):
+    def __init__(self, label=None):
+        self.label = label
         self.instreets = []
         self.outstreets = []
+
+    def __str__(self):
+        if self.label is None:
+            return '<{}.{} object at {}>'.format(
+                self.__class__.__module__,
+                self.__class__.__name__,
+                hex(id(self)))
+        else:
+            return self.label
 
 
 
@@ -194,7 +204,7 @@ class Street:
     information about its lanes as well as the queue of cars waiting
     at traffic lights.'''
     
-    def __init__(self, tail, head, weight=1, label=''):
+    def __init__(self, tail, head, weight=1, label=None):
         # Will eventually contain lane information.
         self.tail = tail
         self.head = head
@@ -204,6 +214,15 @@ class Street:
         
         tail.outstreets.append(self)
         head.instreets.append(self)
+
+    def __str__(self):
+        if self.label is None:
+            return '<{}.{} object at {}>'.format(
+                self.__class__.__module__,
+                self.__class__.__name__,
+                hex(id(self)))
+        else:
+            return self.label
 
 
 
