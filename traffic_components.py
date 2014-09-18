@@ -1,9 +1,12 @@
 import queue
+import numpy as np
 
 
 
 class DisconnectedPathError(Exception): pass
 class NotAtFrontOfQueueError(Exception): pass
+class CannotCutStreetError(Exception): pass
+class LatticeDimensionsError(Exception): pass
 
 
 
@@ -38,32 +41,77 @@ class StreetNetwork:
         return cls(intersections, streets, [])
 
     @classmethod
-    def square_lattice(cls, width, height):
+    def square_lattice(cls, width, height,
+                       north_weights=None, east_weights=None,
+                       south_weights=None, west_weights=None):
         '''Construct a street network on top of a square lattice
-        (i.e., a grid), given the width and height of the lattice.
-        All streets are bidirectional.'''
+        (i.e., a grid), given the width (number of intersections going
+        horizontally) and height (number of intersections going
+        vertically) of the lattice.  All streets are
+        bidirectional. The weights can be preset by giving 2d arrays
+        of numbers, e.g., north_weights contains the weights of all
+        northbound streets. If they are not given, then the
+        constructor uses weights of 1.'''
         
+        if north_weights is None: north_weights = np.ones((height-1, width)) 
+        if east_weights is None: east_weights = np.ones((height, width-1)) 
+        if south_weights is None: south_weights = np.ones((height-1, width)) 
+        if west_weights is None: west_weights = np.ones((height, width-1)) 
+
+        # First check that the dimensions of the weights arrays match
+        # the given width and height.
+        weights = { 'north':north_weights, 'east':east_weights,
+                    'south':south_weights, 'west':west_weights }
+        for name in weights:
+            if name == 'north' or name == 'south':
+                h = height - 1
+                w = width
+            elif name == 'east' or name == 'west':
+                h = height
+                w = width - 1
+            
+            if len(weights[name]) != h:
+                raise LatticeDimensionsError(
+                    'There are {} rows of {}_weights but there should be {}'
+                    .format(len(weights[name]), name, h))
+
+            if any([ (len(row) != w) for row in weights[name] ]):
+                raise LatticeDimensionsError(
+                    'A row in {}_weights has length {} but it should be {}'
+                    .format(name,
+                            [ len(row) for row in weights[name]
+                              if len(row) != w ][0],
+                            w))
+
         nodes = [ [ Intersection() for i in range(width) ] 
                   for j in range(height) ]
         flattened_nodes = []
         for row in nodes:
             flattened_nodes.extend(row)
 
-        horizontal_streets = [ Street(nodes[i][j], nodes[i][j+1])
-                               for i in range(height)
-                               for j in range(width - 1) ]
-        vertical_streets = [ Street(nodes[i][j], nodes[i+1][j] )
-                             for i in range(height - 1)
-                             for j in range(width) ]
-        streets = horizontal_streets + vertical_streets
-        reverse_streets = [ Street(street.head, street.tail)
-                            for street in streets ]
-        streets.extend(reverse_streets)
+        south_streets = [ Street(nodes[i][j], nodes[i+1][j],
+                                 weights['south'][i][j])
+                          for i in range(height-1) for j in range(width) ]
+        north_streets = [ Street(nodes[i+1][j], nodes[i][j],
+                                 weights['south'][i][j])
+                          for i in range(height-1) for j in range(width) ]
+        east_streets = [ Street(nodes[i][j], nodes[i][j+1],
+                                weights['east'][i][j])
+                         for i in range(height) for j in range(width-1) ]
+        west_streets = [ Street(nodes[i][j+1], nodes[i][j],
+                                weights['east'][i][j])
+                         for i in range(height) for j in range(width-1) ]
+        streets = north_streets + east_streets + south_streets + west_streets
         
         return cls(flattened_nodes, streets, [])
 
     def cut_street(self, street):
         '''Cleanly removes a given street from the network.'''
+
+        if not street.q.empty:
+            raise CannotCutStreetError(
+                'Street {} has the following cars in its queue: {}.'
+                .format(street, street.q.queue))
 
         self.streets.remove(street)
         street.tail.outstreets.remove(street)

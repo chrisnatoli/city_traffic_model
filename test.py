@@ -1,6 +1,6 @@
 from traffic_components import *
 from nose.tools import *
-
+import numpy as np
 
 
 def test_contruct_simple_network():
@@ -52,6 +52,12 @@ def test_contruct_simple_network():
     assert CB not in network1.streets
     assert CB in network2.streets
     assert BC in network1.streets
+
+    # Fail to cut an edge that contains a car.
+    car = Car([BC], network1)
+    assert car in BC.q.queue
+    assert_raises(CannotCutStreetError,
+                  network1.cut_street(BC))
     
 
 
@@ -229,3 +235,30 @@ def test_shortest_path():
     network.streets.append(CH)
     assert_equal([AD, DC, CH],
                  network.shortest_path(A, H))
+
+
+
+def test_grid_with_weights():
+    width = 6
+    height = 5
+
+    north_weights = np.ones((height-1, width))
+    east_weights = np.ones((height, width-1))
+    south_weights = np.ones((height-1, width))
+
+    west_weights = np.ones((height, width))
+    assert_raises(LatticeDimensionsError,
+                  StreetNetwork.square_lattice,
+                  width, height,
+                  north_weights, east_weights,
+                  south_weights, west_weights)
+                                               
+    west_weights = np.ones((height, width-1))
+    network = StreetNetwork.square_lattice(width, height,
+                                           north_weights, east_weights,
+                                           south_weights, west_weights)
+    for street in network.streets:
+        assert_equal(street.weight, 1)
+
+    
+    
