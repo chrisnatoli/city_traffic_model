@@ -13,18 +13,26 @@ class LatticeDimensionsError(Exception): pass
 class StreetNetwork:
     '''The system of streets and intersections is represented by a
     digraph. Nodes are Intersections, and edges are Streets. Streets
-    are not merely ordered pairs of nodes; they also contain
-    information about lanes and contain queues of cars waiting at
-    traffic lights. Street networks also know the cars that move
-    within them.'''
+    are not merely ordered pairs of nodes but full Street objects.
+    StreetNetworks also know a list of cars that move within them. If
+    the StreetNetwork is a square lattice, then it knows the 2d arrays
+    of intersections and north/east/south/west-bound streets.'''
     
-    def __init__(self, intersections, streets, cars):
+    def __init__(self, intersections, streets, cars,
+                 lattice=None, north_streets=None, east_streets=None,
+                 south_streets=None, west_streets=None):
         '''Construct a street network as a simple digraph given the
         nodes and edges.'''
 
         self.intersections = intersections
         self.streets = streets
         self.cars = cars
+        
+        self.lattice = lattice
+        self.north_streets = north_streets
+        self.east_streets = east_streets
+        self.south_streets = south_streets
+        self.west_streets = west_streets
 
     @classmethod
     def empty(cls):
@@ -112,7 +120,9 @@ class StreetNetwork:
         flattened_nodes = []
         for row in nodes:
             flattened_nodes.extend(row)
-        return cls(flattened_nodes, streets, [])
+        return cls(flattened_nodes, streets, [],
+                   nodes, north_streets, east_streets,
+                   south_streets, west_streets)
 
     def cut_street(self, street):
         '''Cleanly removes a given street from the network.'''

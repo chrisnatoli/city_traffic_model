@@ -1,4 +1,5 @@
 from traffic_components import *
+from traffic_map import *
 from nose.tools import *
 import numpy as np
 
@@ -275,3 +276,10 @@ def test_grid_with_weights():
     for i in range(height):
         for j in range(width):
             assert (i,j) in node_labels
+
+
+
+def test_traffic_map():
+    network = StreetNetwork.square_lattice(5, 7)
+
+    TrafficMap(network).draw()
